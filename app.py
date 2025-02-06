@@ -1,103 +1,65 @@
 import streamlit as st
-import random
+import yfinance as yf
 import pandas as pd
-
-# Define a list of community member names
-names = ["Alice", "Bob", "Charlie", "David", "Eva", "Frank", "Grace", "Helen", "Ian", "Jack",
-         "Karen", "Louis", "Mia", "Nathan", "Olivia", "Paul", "Quincy", "Rita", "Sam", "Tina",
-         "Uma", "Vince", "Will", "Xena", "Yara", "Zack"]
-
-# Define the interests for random assignment
-interests = ["Sports", "Music", "Art", "Technology", "Travel", "Cooking", "Fitness", "Reading", "Gaming", "Photography"]
-
-# Function to generate random profiles
-def generate_member_data():
-    return {
-        "Name": random.choice(names),
-        "Age": random.randint(18, 60),  # Random age between 18 and 60
-        "Interest": random.choice(interests),  # Random interest
-        "Profile": f"This is the profile of {random.choice(names)}"  # Random profile description
-    }
-
-# Generate random data for 25 members
-def generate_members(count=25):
-    return [generate_member_data() for _ in range(count)]
-
-# Convert list of member data to a pandas DataFrame
-members = generate_members()
-members_df = pd.DataFrame(members)
+import matplotlib.pyplot as plt
 
 # Streamlit App
-st.title("Community Members Management")
+st.title("Stock Metrics Dashboard")
 
-# Display a brief introduction
-st.write("This app dynamically generates a list of community members with random profile data.")
+# Sidebar for user input (Stock symbol)
+stock_symbol = st.sidebar.text_input("Enter Stock Symbol (e.g., AAPL, TSLA, GOOG)")
 
-# Sidebar for navigation between pages
-page = st.sidebar.radio("Select Page", ["Home", "Member List", "Filters", "Stats"])
+# Function to fetch stock data
+def fetch_stock_data(symbol):
+    stock = yf.Ticker(symbol)
+    stock_data = stock.history(period="1d")  # Get the most recent data
+    stock_info = stock.info  # Fetch stock info
+    return stock_data, stock_info
 
-if page == "Home":
-    st.subheader("Welcome to the Community Members Management App!")
-    st.write("""
-    This application helps you explore community members' profiles, view lists, and filter members based on various criteria. You can also check out community statistics.
-    """)
-elif page == "Member List":
-    # Display the full list of community members
-    st.subheader("Full List of Community Members")
-    st.dataframe(members_df)
+# Display metrics and data
+if stock_symbol:
+    try:
+        # Fetch stock data and information
+        stock_data, stock_info = fetch_stock_data(stock_symbol)
 
-    # Adding pagination
-    rows_per_page = 10
-    total_pages = len(members_df) // rows_per_page + 1
-    page_number = st.number_input("Select Page", min_value=1, max_value=total_pages, value=1)
+        # Display stock info and metrics
+        st.subheader(f"{stock_symbol} Stock Information")
+        st.write(f"**Company Name:** {stock_info.get('longName', 'N/A')}")
+        st.write(f"**Sector:** {stock_info.get('sector', 'N/A')}")
+        st.write(f"**Market Cap:** {stock_info.get('marketCap', 'N/A')}")
+        st.write(f"**Current Price:** ${stock_info.get('currentPrice', 'N/A')}")
+        st.write(f"**PE Ratio:** {stock_info.get('trailingPE', 'N/A')}")
+        st.write(f"**Dividend Yield:** {stock_info.get('dividendYield', 'N/A')}")
+        st.write(f"**Volume:** {stock_info.get('volume', 'N/A')}")
 
-    start_idx = (page_number - 1) * rows_per_page
-    end_idx = start_idx + rows_per_page
-    st.dataframe(members_df[start_idx:end_idx])
+        # Display historical data (daily high/low, close, volume)
+        st.subheader("Stock Historical Data (Last 7 Days)")
+        stock_data = yf.Ticker(stock_symbol).history(period="7d")
+        st.write(stock_data)
 
-elif page == "Filters":
-    st.subheader("Filter Members")
+        # Plot the stock's closing price
+        st.subheader("Stock Price History")
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.plot(stock_data.index, stock_data['Close'], label="Closing Price", color='blue')
+        ax.set_xlabel("Date")
+        ax.set_ylabel("Closing Price ($)")
+        ax.set_title(f"{stock_symbol} - Closing Price History (Last 7 Days)")
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        st.pyplot(fig)
 
-    # Filter by age
-    age_filter = st.slider("Select Age Range", 18, 60, (18, 60))
-    filtered_members = members_df[(members_df['Age'] >= age_filter[0]) & (members_df['Age'] <= age_filter[1])]
-    
-    # Filter by interest
-    interest_filter = st.selectbox("Select Interest", ["All"] + interests)
-    if interest_filter != "All":
-        filtered_members = filtered_members[filtered_members['Interest'] == interest_filter]
+        # Plot volume
+        st.subheader("Stock Volume History")
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.bar(stock_data.index, stock_data['Volume'], label="Volume", color='orange')
+        ax.set_xlabel("Date")
+        ax.set_ylabel("Volume")
+        ax.set_title(f"{stock_symbol} - Volume History (Last 7 Days)")
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        st.pyplot(fig)
 
-    st.dataframe(filtered_members)
-
-elif page == "Stats":
-    st.subheader("Community Statistics")
-
-    # Average Age of Members
-    avg_age = members_df['Age'].mean()
-    st.write(f"**Average Age:** {avg_age:.2f}")
-
-    # Most Common Interest
-    most_common_interest = members_df['Interest'].mode()[0]
-    st.write(f"**Most Common Interest:** {most_common_interest}")
-
-    # Distribution of Interests
-    st.subheader("Interest Distribution")
-    interest_counts = members_df['Interest'].value_counts()
-    st.bar_chart(interest_counts)
-
-# Sidebar for selecting a community member
-member_name = st.sidebar.selectbox("Select a Member", members_df['Name'])
-
-# Display the profile details of the selected member
-selected_member = members_df[members_df['Name'] == member_name].iloc[0]
-st.subheader(f"Profile of {selected_member['Name']}")
-st.write(f"**Age:** {selected_member['Age']}")
-st.write(f"**Interest:** {selected_member['Interest']}")
-st.write(f"**Profile Description:** {selected_member['Profile']}")
-
-# Adding a button for refreshing the member list or generating new members
-if st.button('Refresh Members'):
-    # Regenerate the member data and update the DataFrame
-    members = generate_members()
-    members_df = pd.DataFrame(members)
-    st.experimental_rerun()  # Rerun the app to refresh the list
+    except Exception as e:
+        st.error(f"Error fetching data for {stock_symbol}: {str(e)}")
+else:
+    st.write("Please enter a stock symbol to view the data.")
