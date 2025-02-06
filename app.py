@@ -7,15 +7,15 @@ names = ["Alice", "Bob", "Charlie", "David", "Eva", "Frank", "Grace", "Helen", "
          "Karen", "Louis", "Mia", "Nathan", "Olivia", "Paul", "Quincy", "Rita", "Sam", "Tina",
          "Uma", "Vince", "Will", "Xena", "Yara", "Zack"]
 
-ages = [random.randint(18, 60) for _ in range(25)]
+ages = [random.randint(18, 60) for _ in range(25)]  # 25 random ages
 interests = ["Sports", "Music", "Art", "Technology", "Travel", "Cooking", "Fitness", "Reading", "Gaming", "Photography"]
 
-# Create a dataframe of community members
+# Create a dataframe of community members with equal length
 members = pd.DataFrame({
     "Name": names,
     "Age": ages,
-    "Interest": [random.choice(interests) for _ in range(25)],
-    "Profile": [f"Profile of {name}" for name in names]
+    "Interest": [random.choice(interests) for _ in range(25)],  # Random interest for each member
+    "Profile": [f"Profile of {name}" for name in names]  # Profile description
 })
 
 # Streamlit App
